@@ -1,0 +1,10 @@
+src/
+docs/
+scripts/
+node_modules/
+*.log
+.DS_Store
+tsconfig.json
+biome.json
+vitest.config.ts
+.gitignore
