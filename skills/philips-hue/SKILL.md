@@ -96,6 +96,15 @@ Three modes — mutually exclusive:
 - `changed: true` means state actually flipped; `false` means already in target state
 - Setting a light to its current state is not an error (exit 0, `changed: false`)
 
+### `devices reset`
+```
+philips-hue devices reset [--format json]
+```
+Restores all 8 lights to their default states (Kitchen Counter on, Bedroom Lamp off, etc.).
+Useful between test sessions or after a "turn everything off" sweep.
+
+**JSON data:** `{reset: true, count: 8}`
+
 ### `auth` commands
 ```
 philips-hue auth login   # creates credentials
@@ -163,8 +172,9 @@ Check `$?` after each command when scripting.
 - **Always use `--format json`** when scripting. Human-mode output (tables,
   chalk color codes) is not machine-readable.
 
-- **State is persisted** to `~/.philips-hue/mock-state.json` between invocations.
-  A `devices set` call followed by `devices list` will reflect the change.
+- **State persists between runs.** Lights stay in whatever state the last `set`
+  command left them. Use `devices reset` to restore all 8 lights to defaults, or
+  delete `~/.philips-hue/mock-state.json` for a completely clean slate.
 
 - **`changed: false` is not an error.** If a light is already in the requested
   state, the command succeeds (exit 0) and returns `changed: false` in the

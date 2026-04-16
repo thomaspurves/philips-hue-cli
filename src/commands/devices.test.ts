@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { writeCredentials } from '../lib/auth.js';
 import { setFormat } from '../lib/output.js';
-import { getAction, listAction, setAction } from './devices.js';
+import { getAction, listAction, resetAction, setAction } from './devices.js';
 
 function captureExit() {
   const stdout: string[] = [];
@@ -222,6 +222,48 @@ describe('devices set — input validation', () => {
     expect(() => setAction('light-001', { state: 'dim' })).toThrow('exit');
     const env = jsonLine(cap.stdout);
     expect(env.ok).toBe(false);
+    cap.restore();
+  });
+});
+
+describe('devices reset', () => {
+  it('restores all lights to default state', () => {
+    // Turn everything off first
+    const cap = captureExit();
+    expect(() => setAction(undefined, { state: 'off' })).toThrow('exit');
+    cap.stdout.length = 0;
+    // Reset
+    expect(() => resetAction()).toThrow('exit');
+    const env = jsonLine(cap.stdout);
+    expect(env.ok).toBe(true);
+    expect((env.data as Record<string, unknown>).reset).toBe(true);
+    expect((env.data as Record<string, unknown>).count).toBe(8);
+    cap.restore();
+  });
+
+  it('after reset, default on-lights are on again', () => {
+    const cap = captureExit();
+    // Turn everything off
+    expect(() => setAction(undefined, { state: 'off' })).toThrow('exit');
+    cap.stdout.length = 0;
+    // Reset
+    expect(() => resetAction()).toThrow('exit');
+    cap.stdout.length = 0;
+    // List — should have 4 lights on (light-001, light-002, light-006, light-008)
+    expect(() => listAction({})).toThrow('exit');
+    const lights = jsonLine(cap.stdout).data as Array<Record<string, unknown>>;
+    const onCount = lights.filter((l) => l.state === 'on').length;
+    expect(onCount).toBe(4);
+    cap.restore();
+  });
+
+  it('is idempotent — resetting twice is fine', () => {
+    const cap = captureExit();
+    expect(() => resetAction()).toThrow('exit');
+    cap.stdout.length = 0;
+    expect(() => resetAction()).toThrow('exit');
+    const env = jsonLine(cap.stdout);
+    expect(env.ok).toBe(true);
     cap.restore();
   });
 });

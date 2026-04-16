@@ -4,6 +4,7 @@ import { EXIT_INPUT, EXIT_NOT_FOUND } from '../lib/errors.js';
 import { check, fail, renderTable, success } from '../lib/output.js';
 import type { Light } from '../mock/state.js';
 import {
+  defaultState,
   findLight,
   findRoom,
   lightsForRoom,
@@ -40,6 +41,14 @@ export function registerDevices(program: Command): void {
     .action((id: string | undefined, opts: { room?: string; state: string }) => {
       requireAuth();
       setAction(id, opts);
+    });
+
+  devices
+    .command('reset')
+    .description('Reset all lights to their default states.')
+    .action(() => {
+      requireAuth();
+      resetAction();
     });
 }
 
@@ -164,5 +173,14 @@ export function setAction(id: string | undefined, opts: { room?: string; state: 
     process.stdout.write(
       `${result.summary.changed} of ${result.summary.count} light(s) changed.\n`,
     );
+  });
+}
+
+export function resetAction(): never {
+  const state = defaultState();
+  saveState(state);
+  const count = state.lights.length;
+  return success({ reset: true, count }, () => {
+    process.stdout.write(`${check(`Reset ${count} lights to default state`)}\n`);
   });
 }

@@ -30,8 +30,12 @@ The goal of this POC is to demonstrate how this pattern applies to smart home / 
 git clone https://github.com/thomaspurves/philips-hue-cli.git
 cd philips-hue-cli
 npm install
+# You'll see 5 moderate audit warnings — these are in the Vitest test runner,
+# not the CLI itself. Run `npm audit --omit=dev` to confirm zero runtime vulns.
 npm run build
 npm link                          # puts `philips-hue` on your PATH
+# If npm link fails with EACCES (system Node): sudo npm link
+# nvm users won't need sudo.
 ```
 
 **Authenticate and explore:**
@@ -41,6 +45,9 @@ philips-hue auth login
 philips-hue devices list
 philips-hue devices list --format json | jq '.data[] | {name, state}'
 ```
+
+> **State** persists to `~/.philips-hue/mock-state.json` between runs.
+> Reset to defaults: `philips-hue devices reset` — or `rm -rf ~/.philips-hue` for a completely clean slate.
 
 **Control lights:**
 
@@ -80,6 +87,7 @@ bash scripts/smoke-test.sh
 | `devices list [--room <name>]` | List all lights (optionally filtered by room) |
 | `devices get <id>` | Get a single light |
 | `devices set [<id>] [--room <name>] --state <on\|off>` | Control lights |
+| `devices reset` | Reset all lights to default states |
 | `skills install [--path <dir>]` | Install SKILL.md into agent harness |
 
 All commands accept `--format json` for machine-readable output.
