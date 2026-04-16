@@ -27,7 +27,7 @@ The goal of this POC is to demonstrate how this pattern applies to smart home / 
 **Prerequisites:** Node.js 20+, `jq`
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/philips-hue-cli.git
+git clone https://github.com/thomaspurves/philips-hue-cli.git
 cd philips-hue-cli
 npm install
 npm run build
