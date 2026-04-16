@@ -10,7 +10,7 @@
 
 This project is a proof-of-concept for a category of CLI tooling that is emerging alongside AI coding agents: **agent-native CLIs** — command-line tools designed from the ground up to be consumed by LLMs, not just humans.
 
-The pattern is established by [Ramp CLI](https://github.com/ramp-public/ramp-cli) and [Crossmint's lobster-cli](https://github.com/Crossmint/lobstercash-cli-skills). Key conventions:
+Key agent native conventions:
 
 - `--format json` switches all output to a machine-readable envelope (`{ ok, data, error }`)
 - stdout is always `jq`-safe — no progress logs, no color codes, no mixed output
