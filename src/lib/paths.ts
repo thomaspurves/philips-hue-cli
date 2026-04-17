@@ -12,3 +12,7 @@ export function credentialsPath(): string {
 export function mockStatePath(): string {
   return join(hueHome(), 'mock-state.json');
 }
+
+export function versionManifestPath(): string {
+  return join(hueHome(), 'version-manifest.json');
+}

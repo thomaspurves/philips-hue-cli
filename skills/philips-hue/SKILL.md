@@ -1,5 +1,8 @@
 ---
 name: philips-hue
+version: "0.1.0"
+schema_version: "1"
+min_cli_version: "0.1.0"
 description: >
   Control Philips Hue smart lights via the `philips-hue` CLI. Use this skill
   whenever the user wants to control lights, turn on/off lights, dim or brighten
@@ -112,12 +115,34 @@ philips-hue auth status  # check if authenticated
 philips-hue auth logout  # removes credentials
 ```
 
+### `version`
+```
+philips-hue version [--format json]
+```
+Returns CLI and schema version information.
+
+**JSON data:** `{version, schema_version, min_supported}`
+
+Use this to gate behaviour on a known schema before running commands:
+```bash
+v=$(philips-hue version --format json | jq -r '.data.schema_version')
+[ "$v" = "1" ] || { echo "Unsupported schema"; exit 1; }
+```
+
 ### `skills install`
 ```
 philips-hue skills install [--path <dir>]
 ```
 Copies this SKILL.md to your agent harness's skill directory.
 Auto-detects Claude Code (`~/.claude/`) and Codex (`~/.codex/`).
+
+### `skills update`
+```
+philips-hue skills update [--path <dir>]
+```
+Overwrites an already-installed SKILL.md with the version bundled in the current
+CLI. Run this after upgrading the CLI to pick up updated workflow patterns or
+gotchas. Accepts the same `--path` override as `skills install`.
 
 ## Output Contract
 

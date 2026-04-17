@@ -21,12 +21,21 @@ export interface Room {
 }
 
 export interface MockState {
+  state_version: number;
+  rooms: Room[];
+  lights: Light[];
+}
+
+// A state read from disk may predate the state_version field.
+export interface RawState {
+  state_version?: number;
   rooms: Room[];
   lights: Light[];
 }
 
 export function defaultState(): MockState {
   return {
+    state_version: 1,
     rooms: [
       { id: 'room-001', name: 'Kitchen', lightIds: ['light-001', 'light-002', 'light-003'] },
       { id: 'room-002', name: 'Bedroom', lightIds: ['light-004', 'light-005'] },
@@ -93,11 +102,23 @@ export function defaultState(): MockState {
   };
 }
 
+// Migrate a raw on-disk state to the current MockState schema.
+// v0 (no field) → v1: add state_version.
+// v1: return as-is.
+// Unknown future version: fall back to defaultState() — data loss is
+// preferable to crashing on an unrecognised schema in this mock layer.
+export function migrateState(raw: RawState): MockState {
+  const v = raw.state_version ?? 0;
+  if (v === 1) return raw as MockState;
+  if (v === 0) return { state_version: 1, rooms: raw.rooms, lights: raw.lights };
+  return defaultState();
+}
+
 export function loadState(): MockState {
   const path = mockStatePath();
   try {
     const raw = readFileSync(path, 'utf8');
-    return JSON.parse(raw) as MockState;
+    return migrateState(JSON.parse(raw) as RawState);
   } catch {
     const state = defaultState();
     saveState(state);

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EXIT_AUTH, EXIT_INPUT, EXIT_NOT_FOUND, EXIT_OK } from './errors.js';
 import { fail, getFormat, isJson, setFormat, success, validateFormat } from './output.js';
+import { CLI_VERSION, SCHEMA_VERSION } from './version.js';
 
 beforeEach(() => setFormat('human'));
 
@@ -110,6 +111,41 @@ describe('JSON envelope shape', () => {
     expect(() => success({ x: 1 })).toThrow();
     const envelope = JSON.parse(written[0]);
     expect(envelope.error_code).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+
+  it('success envelope includes schema_version and cli_version', () => {
+    setFormat('json');
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+      written.push(String(c));
+      return true;
+    });
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    expect(() => success({ x: 1 })).toThrow();
+    const envelope = JSON.parse(written[0]);
+    expect(envelope.schema_version).toBe(SCHEMA_VERSION);
+    expect(envelope.cli_version).toBe(CLI_VERSION);
+    vi.restoreAllMocks();
+  });
+
+  it('fail envelope includes schema_version and cli_version', () => {
+    setFormat('json');
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+      written.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    expect(() => fail('err', EXIT_AUTH)).toThrow();
+    const envelope = JSON.parse(written[0]);
+    expect(envelope.schema_version).toBe(SCHEMA_VERSION);
+    expect(envelope.cli_version).toBe(CLI_VERSION);
     vi.restoreAllMocks();
   });
 });

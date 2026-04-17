@@ -47,9 +47,14 @@ with a stubbed/mocked Hue backend — no real API calls.
 ## Non-Functional Requirements
 - Credentials file must be chmod'd 0o600 after write (silent fail on non-POSIX)
 - `auth status` must never include `access_token` in its response data — enforced by test
+- JSON envelopes must always include `schema_version` and `cli_version` — both success and fail
 - JSON error envelopes must include `error_code` mapped from exit code (`EXIT_AUTH` → `AUTH_REQUIRED`, etc.)
 - `--format` must be validated strictly; unknown values → `EXIT_INPUT` / exit 3
 - `PHILIPS_HUE_HOME` env var overrides `~/.philips-hue/`; tests use it for hermetic isolation
+- `CLI_VERSION` is always read from `package.json` via `src/lib/version.ts` — never hardcode it
+- `SCHEMA_VERSION` in `src/lib/version.ts` must be bumped when the envelope contract changes
+- `mock-state.json` schema is versioned via `state_version`; `migrateState()` in `src/mock/state.ts` handles upgrades
+- Exit code 4 (`EXIT_UPGRADE_REQUIRED`) is reserved for forced CLI upgrades via the version manifest
 
 ## Prohibited
 - No `any` types

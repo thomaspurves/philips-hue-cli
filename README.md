@@ -88,7 +88,9 @@ bash scripts/smoke-test.sh
 | `devices get <id>` | Get a single light |
 | `devices set [<id>] [--room <name>] --state <on\|off>` | Control lights |
 | `devices reset` | Reset all lights to default states |
+| `version` | Show CLI version and schema version |
 | `skills install [--path <dir>]` | Install SKILL.md into agent harness |
+| `skills update [--path <dir>]` | Update an installed SKILL.md to the bundled version |
 
 All commands accept `--format json` for machine-readable output.
 
@@ -121,12 +123,14 @@ The CLI simulates a home with 3 rooms and 8 lights. State persists to `~/.philip
 
 ## JSON Output Contract
 
+Every response includes `schema_version` and `cli_version` so consumers can assert compatibility before parsing `data`:
+
 ```json
-{ "ok": true,  "data": <payload>, "error": null,   "error_code": undefined }
-{ "ok": false, "data": null,      "error": "message", "error_code": "AUTH_REQUIRED" }
+{ "ok": true,  "data": <payload>, "error": null,  "schema_version": "1", "cli_version": "0.1.0" }
+{ "ok": false, "data": null,      "error": "msg", "error_code": "AUTH_REQUIRED", "schema_version": "1", "cli_version": "0.1.0" }
 ```
 
-`error_code` is present only on failure envelopes. Values: `AUTH_REQUIRED`, `NOT_FOUND`, `INVALID_INPUT`.
+`error_code` is present only on failure envelopes. Values: `AUTH_REQUIRED`, `NOT_FOUND`, `INVALID_INPUT`, `UPGRADE_REQUIRED`.
 
 | Exit code | Meaning | `error_code` |
 |-----------|---------|--------------|
@@ -134,6 +138,7 @@ The CLI simulates a home with 3 rooms and 8 lights. State persists to `~/.philip
 | 1 | Not authenticated | `AUTH_REQUIRED` |
 | 2 | Light or room not found | `NOT_FOUND` |
 | 3 | Invalid input | `INVALID_INPUT` |
+| 4 | CLI version no longer supported | `UPGRADE_REQUIRED` |
 
 > **Agent tip:** Always check `.ok` or `$?` before piping `.data` to a jq transform —
 > on error, `.data` is `null` and `.data[] | ...` will throw.
@@ -180,7 +185,7 @@ philips-hue skills install --path <dir> # explicit target
 - JSON output envelope enforced on every command; stdout always `jq`-clean
 - `skills install` — harness auto-detection (Claude Code, Codex), recursive file copy
 - `skills/philips-hue/SKILL.md` — agentskills.io spec, workflow patterns, gotchas
-- 74 passing tests (Vitest) covering commands, exit codes, idempotency, harness detection
+- 104 passing tests (Vitest) covering commands, exit codes, idempotency, harness detection, version enforcement
 - TypeScript strict + Biome lint passing
 - `scripts/smoke-test.sh` — hermetic end-to-end test
 

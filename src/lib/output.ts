@@ -1,5 +1,6 @@
 import chalk from 'chalk';
-import { EXIT_AUTH, EXIT_INPUT, EXIT_NOT_FOUND, EXIT_OK } from './errors.js';
+import { EXIT_AUTH, EXIT_INPUT, EXIT_NOT_FOUND, EXIT_OK, EXIT_UPGRADE_REQUIRED } from './errors.js';
+import { CLI_VERSION, SCHEMA_VERSION } from './version.js';
 
 export type OutputFormat = 'human' | 'json';
 
@@ -21,18 +22,27 @@ export interface JsonEnvelope<T> {
   ok: boolean;
   data: T | null;
   error: string | null;
-  error_code?: string | null;
+  error_code?: string;
+  schema_version: string;
+  cli_version: string;
 }
 
 const ERROR_CODES: Record<number, string> = {
   [EXIT_AUTH]: 'AUTH_REQUIRED',
   [EXIT_NOT_FOUND]: 'NOT_FOUND',
   [EXIT_INPUT]: 'INVALID_INPUT',
+  [EXIT_UPGRADE_REQUIRED]: 'UPGRADE_REQUIRED',
 };
 
 export function success<T>(data: T, humanRenderer?: () => void): never {
   if (isJson()) {
-    const envelope: JsonEnvelope<T> = { ok: true, data, error: null };
+    const envelope: JsonEnvelope<T> = {
+      ok: true,
+      data,
+      error: null,
+      schema_version: SCHEMA_VERSION,
+      cli_version: CLI_VERSION,
+    };
     process.stdout.write(`${JSON.stringify(envelope)}\n`);
   } else {
     humanRenderer?.();
@@ -47,6 +57,8 @@ export function fail(message: string, exitCode: number): never {
       data: null,
       error: message,
       error_code: ERROR_CODES[exitCode] ?? 'UNKNOWN_ERROR',
+      schema_version: SCHEMA_VERSION,
+      cli_version: CLI_VERSION,
     };
     process.stdout.write(`${JSON.stringify(envelope)}\n`);
   }

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setFormat } from '../lib/output.js';
-import { detectHarness, installAction, skillsSourceDir } from './skills.js';
+import { detectHarness, installAction, skillsSourceDir, updateAction } from './skills.js';
 
 function captureExit() {
   const stdout: string[] = [];
@@ -141,6 +141,44 @@ describe('installAction', () => {
     expect(() => installAction({}, home)).toThrow('exit');
     const env = jsonLine(cap.stdout);
     expect(env.ok).toBe(true);
+    cap.restore();
+  });
+});
+
+describe('updateAction', () => {
+  it('copies SKILL.md to explicit --path', () => {
+    const home = tempHome();
+    const target = join(home, 'custom-skills', 'philips-hue');
+    const cap = captureExit();
+    expect(() => updateAction({ path: target }, home)).toThrow('exit');
+    const data = jsonLine(cap.stdout).data as Record<string, unknown>;
+    expect(data.updated).toBe(true);
+    expect(data.target).toBe(target);
+    expect(existsSync(join(target, 'SKILL.md'))).toBe(true);
+    cap.restore();
+  });
+
+  it('auto-detects harness and returns updated: true', () => {
+    const home = tempHome();
+    mkdirSync(join(home, '.claude'));
+    const cap = captureExit();
+    expect(() => updateAction({}, home)).toThrow('exit');
+    const env = jsonLine(cap.stdout);
+    expect(env.ok).toBe(true);
+    const data = env.data as Record<string, unknown>;
+    expect(data.updated).toBe(true);
+    expect(data.harness).toBe('claude-code');
+    cap.restore();
+  });
+
+  it('is idempotent — re-updating overwrites cleanly', () => {
+    const home = tempHome();
+    const target = join(home, 'skills');
+    const cap = captureExit();
+    expect(() => updateAction({ path: target }, home)).toThrow('exit');
+    cap.stdout.length = 0;
+    expect(() => updateAction({ path: target }, home)).toThrow('exit');
+    expect(jsonLine(cap.stdout).ok).toBe(true);
     cap.restore();
   });
 });
