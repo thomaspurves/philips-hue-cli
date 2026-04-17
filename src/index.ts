@@ -2,8 +2,7 @@ import { Command } from 'commander';
 import { registerAuth } from './commands/auth.js';
 import { registerDevices } from './commands/devices.js';
 import { registerSkills } from './commands/skills.js';
-import type { OutputFormat } from './lib/output.js';
-import { setFormat } from './lib/output.js';
+import { setFormat, validateFormat } from './lib/output.js';
 
 const program = new Command();
 
@@ -15,9 +14,7 @@ program
 
 program.hook('preAction', (thisCommand) => {
   const fmt = thisCommand.optsWithGlobals().format as string;
-  if (fmt === 'json' || fmt === 'human') {
-    setFormat(fmt as OutputFormat);
-  }
+  setFormat(validateFormat(fmt));
 });
 
 registerAuth(program);

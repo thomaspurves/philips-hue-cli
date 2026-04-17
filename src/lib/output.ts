@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { EXIT_NOT_FOUND, EXIT_OK } from './errors.js';
+import { EXIT_AUTH, EXIT_INPUT, EXIT_NOT_FOUND, EXIT_OK } from './errors.js';
 
 export type OutputFormat = 'human' | 'json';
 
@@ -21,7 +21,14 @@ export interface JsonEnvelope<T> {
   ok: boolean;
   data: T | null;
   error: string | null;
+  error_code?: string | null;
 }
+
+const ERROR_CODES: Record<number, string> = {
+  [EXIT_AUTH]: 'AUTH_REQUIRED',
+  [EXIT_NOT_FOUND]: 'NOT_FOUND',
+  [EXIT_INPUT]: 'INVALID_INPUT',
+};
 
 export function success<T>(data: T, humanRenderer?: () => void): never {
   if (isJson()) {
@@ -35,11 +42,22 @@ export function success<T>(data: T, humanRenderer?: () => void): never {
 
 export function fail(message: string, exitCode: number): never {
   if (isJson()) {
-    const envelope: JsonEnvelope<null> = { ok: false, data: null, error: message };
+    const envelope: JsonEnvelope<null> = {
+      ok: false,
+      data: null,
+      error: message,
+      error_code: ERROR_CODES[exitCode] ?? 'UNKNOWN_ERROR',
+    };
     process.stdout.write(`${JSON.stringify(envelope)}\n`);
   }
   process.stderr.write(`${chalk.red(`Error: ${message}`)}\n`);
   process.exit(exitCode);
+}
+
+export function validateFormat(fmt: string): OutputFormat {
+  if (fmt === 'json' || fmt === 'human') return fmt;
+  // fail() is `never`, which satisfies the OutputFormat return type
+  return fail(`Invalid --format "${fmt}". Must be "human" or "json".`, EXIT_INPUT);
 }
 
 export function printLine(text: string): void {
@@ -83,5 +101,3 @@ export function cross(text: string): string {
 export function successNoHuman<T>(data: T): never {
   return success(data, undefined);
 }
-
-export { EXIT_NOT_FOUND };

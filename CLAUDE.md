@@ -44,6 +44,13 @@ with a stubbed/mocked Hue backend — no real API calls.
   keep it under 500 lines, use YAML frontmatter, include gotchas section
 - Prefer small composable functions over large command handlers
 
+## Non-Functional Requirements
+- Credentials file must be chmod'd 0o600 after write (silent fail on non-POSIX)
+- `auth status` must never include `access_token` in its response data — enforced by test
+- JSON error envelopes must include `error_code` mapped from exit code (`EXIT_AUTH` → `AUTH_REQUIRED`, etc.)
+- `--format` must be validated strictly; unknown values → `EXIT_INPUT` / exit 3
+- `PHILIPS_HUE_HOME` env var overrides `~/.philips-hue/`; tests use it for hermetic isolation
+
 ## Prohibited
 - No `any` types
 - No default exports (named exports only)

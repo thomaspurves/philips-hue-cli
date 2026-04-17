@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EXIT_AUTH, EXIT_INPUT, EXIT_NOT_FOUND, EXIT_OK } from './errors.js';
-import { fail, getFormat, isJson, setFormat, success } from './output.js';
+import { fail, getFormat, isJson, setFormat, success, validateFormat } from './output.js';
 
 beforeEach(() => setFormat('human'));
 
@@ -51,7 +51,7 @@ describe('JSON envelope shape', () => {
     exitSpy.mockRestore();
   });
 
-  it('fail envelope has ok:false, data:null, error message', () => {
+  it('fail envelope has ok:false, data:null, error message, and error_code', () => {
     setFormat('json');
     const written: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
@@ -68,11 +68,79 @@ describe('JSON envelope shape', () => {
     expect(envelope.ok).toBe(false);
     expect(envelope.data).toBeNull();
     expect(envelope.error).toBe('Not authenticated. Run: philips-hue auth login');
+    expect(envelope.error_code).toBe('AUTH_REQUIRED');
 
     stdoutSpy.mockRestore();
     exitSpy.mockRestore();
   });
 
+  it('fail maps exit codes to error_code strings', () => {
+    setFormat('json');
+    const cases: Array<[number, string]> = [
+      [EXIT_AUTH, 'AUTH_REQUIRED'],
+      [EXIT_NOT_FOUND, 'NOT_FOUND'],
+      [EXIT_INPUT, 'INVALID_INPUT'],
+    ];
+    for (const [code, expected] of cases) {
+      const written: string[] = [];
+      const spy = vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+        written.push(String(c));
+        return true;
+      });
+      vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      vi.spyOn(process, 'exit').mockImplementation(() => {
+        throw new Error('exit');
+      });
+      expect(() => fail('msg', code)).toThrow();
+      expect(JSON.parse(written[0]).error_code).toBe(expected);
+      spy.mockRestore();
+    }
+  });
+
+  it('success envelope does not include error_code', () => {
+    setFormat('json');
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+      written.push(String(c));
+      return true;
+    });
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    expect(() => success({ x: 1 })).toThrow();
+    const envelope = JSON.parse(written[0]);
+    expect(envelope.error_code).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+});
+
+describe('validateFormat', () => {
+  it('accepts "human" and "json"', () => {
+    expect(validateFormat('human')).toBe('human');
+    expect(validateFormat('json')).toBe('json');
+  });
+
+  it('calls fail with EXIT_INPUT for unknown format', () => {
+    setFormat('json');
+    const written: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+      written.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    expect(() => validateFormat('xml')).toThrow('exit');
+    const envelope = JSON.parse(written[0]);
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error_code).toBe('INVALID_INPUT');
+    expect(envelope.error).toContain('xml');
+    vi.restoreAllMocks();
+  });
+});
+
+describe('JSON envelope — human mode', () => {
   it('human mode success does not write JSON envelope', () => {
     setFormat('human');
     const written: string[] = [];

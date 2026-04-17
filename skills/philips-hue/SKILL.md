@@ -125,19 +125,22 @@ Every command returns a JSON envelope when `--format json` is passed:
 
 ```json
 {"ok": true,  "data": <payload>, "error": null}
-{"ok": false, "data": null,      "error": "Human-readable message"}
+{"ok": false, "data": null,      "error": "Human-readable message", "error_code": "AUTH_REQUIRED"}
 ```
+
+`error_code` is only present on failure envelopes. Use it for programmatic branching
+instead of parsing the human-readable `error` string.
 
 JSON goes to **stdout only**. Errors also go to stderr (human-readable prefix).
 The stdout stream is always `jq`-safe — no log lines, no progress messages.
 
 ### Exit codes
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Not authenticated |
-| 2 | Light or room not found |
-| 3 | Invalid input (bad flag, mutual exclusion) |
+| Code | Meaning | `error_code` |
+|------|---------|--------------|
+| 0 | Success | *(not present)* |
+| 1 | Not authenticated | `AUTH_REQUIRED` |
+| 2 | Light or room not found | `NOT_FOUND` |
+| 3 | Invalid input (bad flag, mutual exclusion) | `INVALID_INPUT` |
 
 Check `$?` after each command when scripting.
 
@@ -179,6 +182,14 @@ Check `$?` after each command when scripting.
 - **`changed: false` is not an error.** If a light is already in the requested
   state, the command succeeds (exit 0) and returns `changed: false` in the
   affected entry.
+
+- **`auth status` does NOT return the access token.** The status response
+  contains only `{authenticated, user}` — never `access_token`. If you need
+  the token for a downstream call, re-run `auth login` to obtain a fresh one.
+
+- **Branch on `error_code`, not `error` string.** The `error` message is
+  human-readable and may change. Use `error_code` for programmatic logic:
+  `AUTH_REQUIRED`, `NOT_FOUND`, `INVALID_INPUT`.
 
 - **Guard against `null` data before piping to jq transforms.** On error,
   `.data` is `null` — filters like `.data[] | ...` will crash with

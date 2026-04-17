@@ -76,14 +76,34 @@ describe('auth status', () => {
   it('returns authenticated status after login (json)', () => {
     setFormat('json');
     const cap = captureExit();
-    // First login
     expect(() => loginAction()).toThrow('exit');
     cap.stdout.length = 0;
-    // Then status
     expect(() => statusAction()).toThrow('exit');
     const env = jsonLine(cap.stdout);
     expect(env.ok).toBe(true);
     expect((env.data as Record<string, unknown>).authenticated).toBe(true);
+    cap.restore();
+  });
+
+  it('status response does NOT include access_token', () => {
+    setFormat('json');
+    const cap = captureExit();
+    expect(() => loginAction()).toThrow('exit');
+    cap.stdout.length = 0;
+    expect(() => statusAction()).toThrow('exit');
+    const data = jsonLine(cap.stdout).data as Record<string, unknown>;
+    expect(data).not.toHaveProperty('access_token');
+    expect(data).toHaveProperty('authenticated');
+    expect(data).toHaveProperty('user');
+    cap.restore();
+  });
+
+  it('status error envelope includes error_code AUTH_REQUIRED', () => {
+    setFormat('json');
+    const cap = captureExit();
+    expect(() => statusAction()).toThrow('exit');
+    const env = jsonLine(cap.stdout);
+    expect(env.error_code).toBe('AUTH_REQUIRED');
     cap.restore();
   });
 });

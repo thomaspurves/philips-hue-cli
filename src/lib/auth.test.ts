@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   deleteCredentials,
@@ -55,6 +55,17 @@ describe('deleteCredentials', () => {
 
   it('does not throw if file is already gone', () => {
     expect(() => deleteCredentials()).not.toThrow();
+  });
+});
+
+describe('writeCredentials — file permissions', () => {
+  it('sets credentials file to user-only (0o600) on POSIX', () => {
+    writeCredentials(mockCreds());
+    const mode = statSync(credentialsPath()).mode & 0o777;
+    // On Windows the chmod is a no-op; skip the assertion if perms are not 0o600
+    if (process.platform !== 'win32') {
+      expect(mode).toBe(0o600);
+    }
   });
 });
 

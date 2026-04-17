@@ -122,19 +122,32 @@ The CLI simulates a home with 3 rooms and 8 lights. State persists to `~/.philip
 ## JSON Output Contract
 
 ```json
-{ "ok": true,  "data": <payload>, "error": null   }
-{ "ok": false, "data": null,      "error": "message" }
+{ "ok": true,  "data": <payload>, "error": null,   "error_code": undefined }
+{ "ok": false, "data": null,      "error": "message", "error_code": "AUTH_REQUIRED" }
 ```
 
-| Exit code | Meaning |
-|-----------|---------|
-| 0 | Success |
-| 1 | Not authenticated |
-| 2 | Light or room not found |
-| 3 | Invalid input |
+`error_code` is present only on failure envelopes. Values: `AUTH_REQUIRED`, `NOT_FOUND`, `INVALID_INPUT`.
+
+| Exit code | Meaning | `error_code` |
+|-----------|---------|--------------|
+| 0 | Success | *(not present)* |
+| 1 | Not authenticated | `AUTH_REQUIRED` |
+| 2 | Light or room not found | `NOT_FOUND` |
+| 3 | Invalid input | `INVALID_INPUT` |
 
 > **Agent tip:** Always check `.ok` or `$?` before piping `.data` to a jq transform —
 > on error, `.data` is `null` and `.data[] | ...` will throw.
+
+---
+
+## Security & Non-Functional Notes
+
+- **Credentials file** is written to `~/.philips-hue/credentials.json` with mode `0o600` (user-only read/write). The `chmod` call fails silently on platforms that don't support POSIX permissions (e.g. Windows NTFS).
+- **`auth status` intentionally omits `access_token`** from its response — only `authenticated` and `user` are returned. Tests enforce this invariant.
+- **`PHILIPS_HUE_HOME` env var** overrides the default `~/.philips-hue/` directory. Set it in CI or test harnesses for hermetic isolation:
+  ```bash
+  PHILIPS_HUE_HOME=$(mktemp -d) philips-hue auth login --format json
+  ```
 
 ---
 
@@ -167,7 +180,7 @@ philips-hue skills install --path <dir> # explicit target
 - JSON output envelope enforced on every command; stdout always `jq`-clean
 - `skills install` — harness auto-detection (Claude Code, Codex), recursive file copy
 - `skills/philips-hue/SKILL.md` — agentskills.io spec, workflow patterns, gotchas
-- 64 passing tests (Vitest) covering commands, exit codes, idempotency, harness detection
+- 74 passing tests (Vitest) covering commands, exit codes, idempotency, harness detection
 - TypeScript strict + Biome lint passing
 - `scripts/smoke-test.sh` — hermetic end-to-end test
 
@@ -193,6 +206,12 @@ npm run lint        # biome check src/
 npm test            # vitest run
 npm run build       # tsc → dist/
 bash scripts/smoke-test.sh
+```
+
+Set `PHILIPS_HUE_HOME` to an isolated directory to keep tests hermetic:
+
+```bash
+PHILIPS_HUE_HOME=$(mktemp -d) npx vitest run
 ```
 
 ---

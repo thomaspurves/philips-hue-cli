@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { EXIT_AUTH } from './errors.js';
 import { fail } from './output.js';
 import { credentialsPath, hueHome } from './paths.js';
@@ -31,6 +31,13 @@ export function loadCredentials(): Credentials | null {
 export function writeCredentials(creds: Credentials): void {
   mkdirSync(hueHome(), { recursive: true });
   writeFileSync(credentialsPath(), JSON.stringify(creds, null, 2), 'utf8');
+  try {
+    // Restrict to owner read/write only. chmod is not supported on all
+    // platforms (e.g. Windows NTFS), so we fail silently rather than crash.
+    chmodSync(credentialsPath(), 0o600);
+  } catch {
+    // Intentional no-op on platforms that don't support POSIX permissions.
+  }
 }
 
 export function deleteCredentials(): void {
